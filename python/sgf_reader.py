@@ -18,17 +18,18 @@ class SGFReader:
     def parse_moves(moves : list[str]):
         parsed_move = []
         for move in moves:
-            split_move = move.split('[')
-            player = split_move[0]
-            pos = split_move[1].replace(']', '')
-            parsed_move.append([player, pos])
+            if move != '':
+                split_move = move.split('[')
+                player = split_move[0]
+                pos = split_move[1].replace(']', '')
+                parsed_move.append([player, pos])
         
         return(parsed_move)
     
     """
     ---description---
     function(str) -> str,str,str,str
-    Takes in the game metadtat from SGF and extracts the relevant data:
+    Takes in the game metadtat from SGFS and extracts the relevant data:
 
     ---outputs---
     board_size: the size of board the game was played on.
@@ -36,7 +37,7 @@ class SGFReader:
     white_player: the given name of the model controlling the white player
     rules: the variant of the rules being used during the game 
     """
-    def parse_metadata(metadata : str):
+    def parse_metadata_sgfs(metadata : str):
 
         split_data = metadata.split(']')
 
@@ -47,6 +48,17 @@ class SGFReader:
 
         return(board_size, black_player, white_player, rules)
     
+
+    def parse_metadata_sgf(metadata : str):
+
+        split_data = metadata.split(']')
+
+        board_size = split_data[2].split('[')[1]
+        black_player = split_data[3].split('[')[1]
+        white_player = split_data[4].split('[')[1]
+        rules = split_data[7].split('[')[1]
+
+        return(board_size, black_player, white_player, rules)
     """
     ---description---
     function(str) -> list[dict]
@@ -83,8 +95,14 @@ class SGFReader:
 
             for move_confidence in game_moves_confidence:
                 game_moves.append(move_confidence.split('C')[0])
-        
-            board_size, black_player, white_player, rules = self.parse_metadata(game_metadata)
+
+
+            if file_path.split(".")[1] == 'sgfs':
+                board_size, black_player, white_player, rules = self.parse_metadata_sgfs(game_metadata)
+            elif file_path.split(".")[1] == 'sgf':
+                board_size, black_player, white_player, rules = self.parse_metadata_sgf(game_metadata)
+            else:
+                print('error: unknonw file extension, file must be .sgf or .sgfs')
             moves = self.parse_moves(game_moves)
 
             game_dict = {}
