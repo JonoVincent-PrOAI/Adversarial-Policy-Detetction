@@ -6,7 +6,7 @@ import pandas as pd
 class data_loader():
 
 
-    header = ['black name','white name','black model', 'white model', 'adversarial', 'attack type', 'moves', 
+    header = ['black name','white name','black model', 'white model', 'adversarial', 'attack type', 'moves', 'result', 
         'file path']
 
     non_adv_dir_path = 'Data/Non-Adv_Policies'
@@ -115,7 +115,7 @@ class data_loader():
                         file_path = sub_folder_path + '/' + os.fsdecode(file)
                         game_list = SGFReader.read_file(SGFReader, file_path)
                         for game in game_list:
-                            game_info = ['NA','NA',game['pla'], game['opp'], '0', 'NA', game['moves'], file_path]
+                            game_info = ['NA','NA',game['pla'], game['opp'], '0', 'NA', game['moves'], game['result'],file_path]
                             non_adv_data.append(game_info)
 
         return(non_adv_data)
@@ -175,7 +175,7 @@ class data_loader():
                                 attack_type = 'cyclic'
 
                             game_info = [black_name, white_name, black_model, white_model, adversarial, 
-                                         attack_type, game['moves'], file_path]
+                                         attack_type, game['moves'], game['result'], file_path]
 
                             adv_data.append(game_info)
         
