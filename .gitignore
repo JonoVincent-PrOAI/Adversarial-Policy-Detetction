@@ -94,3 +94,11 @@ cpp/include/KataGoSwift/KataGoSwift-swift.h
 # For Large Files
 python/Network_Files
 python/Data
+
+#Venv
+adv-pol-det
+lib
+
+#files for messing about
+archive.ipynb
+test.ipynb
