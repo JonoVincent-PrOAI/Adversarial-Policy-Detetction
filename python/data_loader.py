@@ -1,13 +1,26 @@
 
 import os
 from sgf_reader import SGFReader
-import pandas as pd
+import pandas as pd 
+import load_model
+import torch
+from gamestate import GameState
+from board import Board
+import csv
+import numpy as np
+from pathlib import Path
 
-class data_loader():
 
 
-    header = ['black name','white name','black model', 'white model', 'adversarial', 'attack type', 'moves', 'result', 
+class Data_Loader():
+
+
+    game_header = ['black name','white name','black model', 'white model', 'adversarial', 'attack type', 'moves', 'result', 
         'file path']
+    
+    probe_header = ['probe model','game id','move number','black name','white name','black model', 'white model', 'adversarial', 'attack type', 'result', 
+        'file path', 'layer outputs']
+    
 
     non_adv_dir_path = 'Data/Non-Adv_Policies'
 
@@ -79,7 +92,7 @@ class data_loader():
     ---output---
     dataframe: pandas Dataframe containing information extracted from sgfs files
     '''
-    def load_data(self):
+    def load_game_data(self):
 
         non_adv_data = self.load_non_adv_model_data(self)
 
@@ -87,7 +100,7 @@ class data_loader():
 
         data = non_adv_data + adv_data
 
-        dataframe = pd.DataFrame(data, columns = self.header)
+        dataframe = pd.DataFrame(data, columns = self.game_header)
 
         return(dataframe)
 
@@ -115,7 +128,8 @@ class data_loader():
                         file_path = sub_folder_path + '/' + os.fsdecode(file)
                         game_list = SGFReader.read_file(SGFReader, file_path)
                         for game in game_list:
-                            game_info = ['NA','NA',game['pla'], game['opp'], '0', 'NA', game['moves'], game['result'],file_path]
+                            game_info = ['NA','NA',game['pla'], game['opp'], '0', 
+                                         'NA', game['moves'], game['result'],file_path]
                             non_adv_data.append(game_info)
 
         return(non_adv_data)
@@ -180,7 +194,159 @@ class data_loader():
                             adv_data.append(game_info)
         
         return(adv_data)
-
-
-
     
+    '''
+    ---description---
+    Function(str) -> pandas.dataframe
+    loads the files from /Data into a dataframe. Then plays the games through the given model, storing the output
+    of the different model blocks into a different dataframe.
+
+    ---input---
+    chkpt_file(str): the file path to the katago model chkpt file. The games in /Data will be passed thorugh 
+                     the model and layer outputs stored
+
+    ---output---
+    layer_outputs(dataframe): dataframe containing the stored layer outputs.
+    '''
+    def load_probe_data(self, chkpt_file : str, model_name : str, extra_outputs : list):
+
+        kata_model, kata_swa_model, other_state_dict = load_model.load_model(chkpt_file, use_swa=True, device = torch.device("cpu"))
+
+        game_data = self.load_game_data(self)
+
+
+        for i in range(0, len(game_data['black name'])):
+
+            probe_data = np.array([])
+
+            gs = GameState(19, GameState.RULES_TT)
+
+            #black_name = game_data[0]
+            #black_model = game_data[2]
+            #white_name = game_data[1]
+            #white_model = game_data[3]
+            adversarial = game_data[4]
+            #attack_type = game_data[5]
+            moves = game_data[6]
+            #result = game_data[7]
+
+            probe_outputs = {key: [] for key in extra_outputs}
+
+            for j in range(0, len(moves)):
+
+                move = moves[j]
+
+                SGFReader.play_move(SGFReader, gs, move)
+
+                model_outputs = gs.get_model_outputs(model=kata_model, extra_output_names = extra_outputs)
+                
+                for name in extra_outputs:
+                    probe_outputs[name].append(
+                            {
+                            'move num' : j, 
+                            'layer activation' : model_outputs[name], 
+                            'adversarial' : adversarial
+                            })
+                
+
+        for output in extra_outputs:
+            directory_name = 'Data/Probe_Data/' + model_name + '/' + (output.split('.')[0])
+            file_name = 'game_' + str(i) + '.npy'
+            out_file = directory_name + '/' + file_name
+            output_array = np.array(probe_outputs[output])
+            with open(out_file, 'wb') as f:
+                np.save(f, output_array, allow_pickle = True)
+
+
+    def batch_data(self, batch_size : int):
+
+        non_adv_data = self.load_non_adv_model_data(self)
+
+        adv_data = self.load_adv_model_data(self)
+
+        data = non_adv_data + adv_data
+
+        batches = []
+
+        data_size = len(data) -1 
+
+        for i in range(0, data_size, batch_size):
+            if i + batch_size < data_size:
+                batches.append(data[i : i+batch_size])
+            elif i != data_size:
+                batches.append(data[i : data_size])
+            
+
+        return(batches)
+    
+
+
+
+    def probe_batch(self, chkpt_file : str, model_name : str, extra_outputs : list, batched_data : list,batch_index : int):
+        
+        for output in extra_outputs:
+            directory_name = 'Data/Probe_Data/' + model_name + '/' + (output.split('.')[0])
+            directory_path = Path(directory_name)
+            try:
+                directory_path.mkdir(parents=True, exist_ok=True)
+                print(f"Directory '{directory_name}' created successfully.")
+            except FileExistsError:
+                print(print(f"Directory '{directory_name}' already exists. Writing outputs to '{directory_name}"))
+
+
+        kata_model, kata_swa_model, other_state_dict = load_model.load_model(chkpt_file, use_swa=True, device = torch.device("cpu"))
+        
+        batch = batched_data[batch_index]
+
+        for i in range(0, len(batch)):
+
+            game_data = batch[i]
+
+            index = (len(batch) * batch_index) + i
+
+            probe_data = np.array([])
+
+            gs = GameState(19, GameState.RULES_TT)
+
+            #black_name = game_data[0]
+            #black_model = game_data[2]
+            #white_name = game_data[1]
+            #white_model = game_data[3]
+            adversarial = game_data[4]
+            #attack_type = game_data[5]
+            moves = game_data[6]
+            #result = game_data[7]
+
+            probe_outputs = {key: [] for key in extra_outputs}
+
+            for j in range(0, len(moves)):
+
+                move = moves[j]
+
+                SGFReader.play_move(SGFReader, gs, move)
+
+                model_outputs = gs.get_model_outputs(model=kata_model, extra_output_names = extra_outputs)
+                
+                for name in extra_outputs:
+                    probe_outputs[name].append(
+                            {
+                            'move num' : j, 
+                            'layer activation' : model_outputs[name], 
+                            'adversarial' : adversarial
+                            })
+                    
+
+            for output in extra_outputs:
+                directory_name = 'Data/Probe_Data/' + model_name + '/' + (output.split('.')[0])
+                file_name = 'game_' + str(index) + '.npy'
+                out_file = directory_name + '/' + file_name
+                output_array = np.array(probe_outputs[output])
+                with open(out_file, 'wb') as f:
+                    np.save(f, output_array, allow_pickle = True)
+
+
+
+
+
+
+                

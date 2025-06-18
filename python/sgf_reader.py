@@ -126,7 +126,7 @@ class SGFReader:
     file_path: str: the file path to the SGF file being replayed
     nn_chkpt: str: the file path to the chkpt file of the nn model being used pass the moves through
     """
-    def replay_game(self, file_path : str, nn_chkpt : str ):
+    def replay_file(self, file_path : str, nn_chkpt : str ):
 
         sgf_game_list = self.read_file(SGFReader, file_path)
 
@@ -151,7 +151,7 @@ class SGFReader:
                 loc = self.parse_coord(SGFReader, command[2], gs.board)
                 gs.play(pla,loc)
 
-                print(gs.board.to_string())
+                print(gs.get_model_outputs(kata_model, extra_output_names=['rconv13.out'])["rconv13.out"])
             
             print(game_dict['result'])
 
@@ -185,8 +185,16 @@ class SGFReader:
             gs.play(pla,loc)
 
             print(gs.board.to_string())
-        
-        
+
+    
+    def play_move(self, gs : GameState, move : str,):
+
+        command = [['play'], move[0], move[1]]
+
+        pla = (Board.BLACK if command[1] == "B" or command[1] == "b" else Board.WHITE)
+        loc = self.parse_coord(SGFReader, command[2], gs.board)
+        gs.play(pla,loc)
+
     def parse_coord(self, s, board):
         if s == '':
             return board.PASS_LOC
