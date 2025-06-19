@@ -266,6 +266,10 @@ class Data_Loader():
 
         data = non_adv_data + adv_data
 
+        dataframe = pd.DataFrame(data, columns = self.game_header)
+
+        dataframe = dataframe.sample(frac=1).reset_index(drop=True)
+
         batches = []
 
         data_size = len(data) -1 
@@ -275,7 +279,6 @@ class Data_Loader():
                 batches.append(data[i : i+batch_size])
             elif i != data_size:
                 batches.append(data[i : data_size])
-            
 
         return(batches)
     
@@ -283,6 +286,7 @@ class Data_Loader():
 
 
     def probe_batch(self, chkpt_file : str, model_name : str, extra_outputs : list, batched_data : list,batch_index : int):
+
         
         for output in extra_outputs:
             directory_name = 'Data/Probe_Data/' + model_name + '/' + (output.split('.')[0])
@@ -292,6 +296,24 @@ class Data_Loader():
                 print(f"Directory '{directory_name}' created successfully.")
             except FileExistsError:
                 print(print(f"Directory '{directory_name}' already exists. Writing outputs to '{directory_name}"))
+
+        
+        meta_file = Path('Data/Probe_Data/' + model_name + '/meta_data.npy')
+
+
+        if not meta_file.is_file():
+            
+            meta_data = []
+
+            for batch in batched_data:
+                for game in batch:
+                    game_meta_data = game[0:5]
+                    meta_data.append(game_meta_data)
+
+            np.array(meta_data)
+
+            with open(meta_file, 'wb') as f:
+                np.save(f, meta_data, allow_pickle = True)
 
 
         kata_model, kata_swa_model, other_state_dict = load_model.load_model(chkpt_file, use_swa=True, device = torch.device("cpu"))
@@ -303,8 +325,6 @@ class Data_Loader():
             game_data = batch[i]
 
             index = (len(batch) * batch_index) + i
-
-            probe_data = np.array([])
 
             gs = GameState(19, GameState.RULES_TT)
 
