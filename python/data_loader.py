@@ -9,6 +9,7 @@ from board import Board
 import csv
 import numpy as np
 from pathlib import Path
+import random
 
 
 
@@ -266,9 +267,7 @@ class Data_Loader():
 
         data = non_adv_data + adv_data
 
-        dataframe = pd.DataFrame(data, columns = self.game_header)
-
-        dataframe = dataframe.sample(frac=1).reset_index(drop=True)
+        random.shuffle(data)
 
         batches = []
 
