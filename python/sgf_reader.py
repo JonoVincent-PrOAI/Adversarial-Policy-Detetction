@@ -126,7 +126,7 @@ class SGFReader:
     file_path: str: the file path to the SGF file being replayed
     nn_chkpt: str: the file path to the chkpt file of the nn model being used pass the moves through
     """
-    def replay_game(self, file_path : str, nn_chkpt : str ):
+    def replay_file(self, file_path : str, nn_chkpt : str ):
 
         sgf_game_list = self.read_file(SGFReader, file_path)
 
@@ -136,11 +136,8 @@ class SGFReader:
 
             board_size = int(game_dict['sz'])
 
-            pos_len = int(game_dict['sz'])
-
             gs = GameState(board_size, GameState.RULES_TT)
 
-            model_config = kata_model.config
             kata_model.eval()
 
             for move in game_dict['moves']:
@@ -154,10 +151,49 @@ class SGFReader:
                 loc = self.parse_coord(SGFReader, command[2], gs.board)
                 gs.play(pla,loc)
 
-                print(gs.board.to_string())
+                print(gs.get_model_outputs(kata_model, extra_output_names=['rconv13.out'])["rconv13.out"])
             
             print(game_dict['result'])
 
+    """
+    ---description---
+    procedure
+    replays a game from a list of the moves, and the board size, by passing them through a NN model
+
+    ---input---
+    moves: list: list containing the moves perforemd during the game, each move is in the sgfs format
+    board_size: int: the size of board the game was played on
+    nn_chkpt: str: the file path to the chkpt file of the nn model being used pass the moves through
+    """
+    def replay_game(self, moves : list, board_size : int, nn_chkpt : str):
+
+        kata_model, kata_swa_model, other_state_dict = load_model.load_model(nn_chkpt, use_swa=True, device = torch.device("cpu"))
+
+        gs = GameState(board_size, GameState.RULES_TT)
+
+        kata_model.eval()
+
+        for move in moves:
+            
+            command = [['play'], move[0], move[1]]
+
+            print(command)
+            print()
+
+            pla = (Board.BLACK if command[1] == "B" or command[1] == "b" else Board.WHITE)
+            loc = self.parse_coord(SGFReader, command[2], gs.board)
+            gs.play(pla,loc)
+
+            print(gs.board.to_string())
+
+    
+    def play_move(self, gs : GameState, move : str,):
+
+        command = [['play'], move[0], move[1]]
+
+        pla = (Board.BLACK if command[1] == "B" or command[1] == "b" else Board.WHITE)
+        loc = self.parse_coord(SGFReader, command[2], gs.board)
+        gs.play(pla,loc)
 
     def parse_coord(self, s, board):
         if s == '':
