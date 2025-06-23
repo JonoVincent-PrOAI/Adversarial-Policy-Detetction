@@ -111,3 +111,6 @@ lib
 archive.ipynb
 test.ipynb
 
+#bc4 specific files
+test_probe.sh
+Run_Probe.py
