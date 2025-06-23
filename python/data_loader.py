@@ -284,11 +284,11 @@ class Data_Loader():
 
 
 
-    def probe_batch(self, chkpt_file : str, model_name : str, extra_outputs : list, batched_data : list,batch_index : int):
+    def probe_batch(self, chkpt_file : str, model_name : str, extra_outputs : list, batched_data : list,batch_index : int, save_directory : str):
 
         
         for output in extra_outputs:
-            directory_name = 'python/Data/Probe_Data/' + model_name + '/' + (output.split('.')[0])
+            directory_name = save_directory + model_name + '/' + (output.split('.')[0])
             directory_path = Path(directory_name)
             try:
                 directory_path.mkdir(parents=True, exist_ok=True)
@@ -297,7 +297,7 @@ class Data_Loader():
                 print(print(f"Directory '{directory_name}' already exists. Writing outputs to '{directory_name}"))
 
         
-        meta_file = Path('python/Data/Probe_Data/' + model_name + '/meta_data.npy')
+        meta_file = Path(save_directory + model_name + '/meta_data.npy')
 
 
         if not meta_file.is_file():
@@ -356,7 +356,7 @@ class Data_Loader():
                     
 
             for output in extra_outputs:
-                directory_name = 'python/Data/Probe_Data/' + model_name + '/' + (output.split('.')[0])
+                directory_name = save_directory + model_name + '/' + (output.split('.')[0])
                 file_name = 'game_' + str(index) + '.npy'
                 out_file = directory_name + '/' + file_name
                 output_array = np.array(probe_outputs[output])
