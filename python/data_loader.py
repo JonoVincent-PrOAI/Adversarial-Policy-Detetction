@@ -23,9 +23,9 @@ class Data_Loader():
         'file path', 'layer outputs']
     
 
-    non_adv_dir_path = 'Data/Non-Adv_Policies'
+    non_adv_dir_path = 'python/Data/Game_Data/Non-Adv_Policies'
 
-    adv_dir_path = 'Data/Adversarial_Policies'
+    adv_dir_path = 'python/Data/Game_Data/Adversarial_Policies'
 
     non_adv_matchups = [['base-adv', 'may23-vic'],['base-adv', 'dec23'],['base-adv', 'may24'],['base-adv','v9'],
                         ['base-adv', 'ViT-Vic'],['large','may24'],['cont','may24']]
@@ -251,7 +251,7 @@ class Data_Loader():
                 
 
         for output in extra_outputs:
-            directory_name = 'Data/Probe_Data/' + model_name + '/' + (output.split('.')[0])
+            directory_name = 'python/Data/Probe_Data/' + model_name + '/' + (output.split('.')[0])
             file_name = 'game_' + str(i) + '.npy'
             out_file = directory_name + '/' + file_name
             output_array = np.array(probe_outputs[output])
@@ -288,7 +288,7 @@ class Data_Loader():
 
         
         for output in extra_outputs:
-            directory_name = 'Data/Probe_Data/' + model_name + '/' + (output.split('.')[0])
+            directory_name = 'python/Data/Probe_Data/' + model_name + '/' + (output.split('.')[0])
             directory_path = Path(directory_name)
             try:
                 directory_path.mkdir(parents=True, exist_ok=True)
@@ -297,7 +297,7 @@ class Data_Loader():
                 print(print(f"Directory '{directory_name}' already exists. Writing outputs to '{directory_name}"))
 
         
-        meta_file = Path('Data/Probe_Data/' + model_name + '/meta_data.npy')
+        meta_file = Path('python/Data/Probe_Data/' + model_name + '/meta_data.npy')
 
 
         if not meta_file.is_file():
@@ -356,7 +356,7 @@ class Data_Loader():
                     
 
             for output in extra_outputs:
-                directory_name = 'Data/Probe_Data/' + model_name + '/' + (output.split('.')[0])
+                directory_name = 'python/Data/Probe_Data/' + model_name + '/' + (output.split('.')[0])
                 file_name = 'game_' + str(index) + '.npy'
                 out_file = directory_name + '/' + file_name
                 output_array = np.array(probe_outputs[output])
