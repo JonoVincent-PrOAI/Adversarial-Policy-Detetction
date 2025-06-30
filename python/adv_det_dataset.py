@@ -1,7 +1,7 @@
 import torch 
 from torch.utils.data import Dataset
 import os
-import numpy
+import numpy as np
 
 class Adversarial_Detection_Dataset(Dataset):
 
@@ -23,7 +23,8 @@ class Adversarial_Detection_Dataset(Dataset):
             game_count = game_count + self.game_length_index[game_index]
         
         if game_index > len(self.game_length_index):
-            print('Error: Index' + str(idx) + ' out of range for dataset of size ' + str(sum(self.game_length_index)))
+            print('Error: Index' + str(idx) + ' out of range for dataset of size ' + 
+                  str(sum(self.game_length_index)))
         else:
             move_index = idx - sum(self.game_length_index[: game_index])
             game_file = os.listdir(self.data_dir)[game_index]
