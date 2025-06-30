@@ -6,7 +6,7 @@ import load_model
 import torch
 from gamestate import GameState
 from board import Board
-import csv
+import json
 import numpy as np
 from pathlib import Path
 import random
@@ -294,28 +294,31 @@ class Data_Loader():
                 directory_path.mkdir(parents=True, exist_ok=True)
                 print(f"Directory '{directory_name}' created successfully.")
             except FileExistsError:
-                print(print(f"Directory '{directory_name}' already exists. Writing outputs to '{directory_name}"))
-
+                print(print(f"Directory '{directory_name}' already exists. Writing outputs to '{directory_name}"))        
         
-        meta_file = Path(save_directory + '/' + model_name + '/meta_data.npy')
+        kata_model, kata_swa_model, other_state_dict = load_model.load_model(chkpt_file, use_swa=True, device = torch.device("cpu"))
+
+        meta_file = Path(save_directory + '/' + model_name + '/meta_data.json')
 
 
         if not meta_file.is_file():
             
-            meta_data = []
+            meta_data = {}
+
+            model_data = kata_model.config
+
+            game_data = []
 
             for batch in batched_data:
                 for game in batch:
                     game_meta_data = game[0:5]
-                    meta_data.append(game_meta_data)
+                    game_data.append(game_meta_data)
 
-            np.array(meta_data)
+            meta_data['model data'] = model_data
+            meta_data['game data'] = game_data
 
-            with open(meta_file, 'wb') as f:
-                np.save(f, meta_data, allow_pickle = True)
-
-
-        kata_model, kata_swa_model, other_state_dict = load_model.load_model(chkpt_file, use_swa=True, device = torch.device("cpu"))
+            with open(meta_file, 'w') as f:
+                json.dump(meta_data, f)
         
         batch = batched_data[batch_index]
 
