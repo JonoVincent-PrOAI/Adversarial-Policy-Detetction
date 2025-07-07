@@ -18,7 +18,7 @@ class Adversarial_Detection_Dataset(Dataset):
     def __getitem__(self, idx):
         game_count = 0
         game_index = -1    
-        while idx > game_count:
+        while idx >= game_count:
             game_index = game_index + 1
             game_count = game_count + self.game_length_index[game_index]
         
@@ -33,7 +33,7 @@ class Adversarial_Detection_Dataset(Dataset):
                 game_data = np.load(f, allow_pickle=True)
                 sample = game_data[move_index]
                 sample['game num'] = game_index
-                return(sample)
+                return(sample['layer activation'], sample['adversarial'])
 
     def __len__(self):
         return(sum(self.game_length_index))
