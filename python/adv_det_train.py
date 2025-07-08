@@ -10,16 +10,16 @@ from adv_det_model import Model
 
 class Training_Loop():
 
-    def __init__(self, data_dir_path : str, batch_size : int, num_workers : int):
+    def __init__(self, data_dir_path : str, batch_size : int, num_workers : int, learing_rate):
 
         self.batch_size = batch_size
 
         self.dataset = adv_dataset(data_dir_path)
 
         train_size = int(0.8 * len(self.dataset))
-        val_size = len(self.dataset) - train_size
+        self.val_size = len(self.dataset) - train_size
 
-        self.train_dataset, self.val_dataset = torch.utils.data.random_split(self.dataset, [train_size, val_size])
+        self.train_dataset, self.val_dataset = torch.utils.data.random_split(self.dataset, [train_size, self.val_size])
 
         meta_dir = os.path.dirname(data_dir_path)
 
@@ -37,18 +37,15 @@ class Training_Loop():
 
         self.loss_fn = torch.nn.CrossEntropyLoss()
 
-        self. optimizer = torch.optim.Adam(self.model.parameters(), lr = 0.001)
+        self. optimizer = torch.optim.Adam(self.model.parameters(), lr = learing_rate)
 
 
     def train_epoch(self, epoch_index : int, tb_writer:SummaryWriter):
 
         running_loss = 0.
-        last_loss = 0
+        average_batch_loss = 0.
 
         training_loss = []
-        eval_loss = []
-        eval_accuracy = []
-
         for i, data in enumerate(self.train_loader):
 
             inputs, labels = data
@@ -70,25 +67,25 @@ class Training_Loop():
 
             running_loss += loss.item()
 
-            last_loss = running_loss / self.batch_size # average loss per batch
+            average_batch_loss = running_loss / self.batch_size
 
-            print('  batch {} loss: {}'.format(i + 1, last_loss))
+            print('  batch {} loss: {}'.format(i + 1, average_batch_loss))
             tb_x = epoch_index * len(self.train_loader) + i + 1
-            tb_writer.add_scalar('Loss/train', last_loss, tb_x)
-            training_loss.append(last_loss)
+            tb_writer.add_scalar('Loss/train', average_batch_loss, tb_x)
+            training_loss.append(average_batch_loss)
             running_loss = 0.
+        
+        last_batch_loss = average_batch_loss
+        eval_loss, eval_accuracy = self.eval_loop()
+        print("post" + str(eval_accuracy))
 
-        eval_epoch_loss, eval_epoch_accuracy = self.eval_loop()
-        eval_loss.append(eval_epoch_loss)
-        eval_accuracy.append(eval_epoch_accuracy)
-
-        return (last_loss,training_loss,eval_loss, eval_accuracy)
+        return (last_batch_loss,training_loss,eval_loss, eval_accuracy)
     
     def eval_loop(self):
 
         self.model.eval()
 
-        correct = 0
+        correct = []
 
         last_loss = 0
 
@@ -117,14 +114,15 @@ class Training_Loop():
 
                 predicted = [0 if n[0] > n[1] else 1 for n in outputs]
 
-                correct = [1 if p == l else 0 for p,l in zip(predicted, labels)]
-
-                correct = sum(correct)
+                correct.append([1 if p == l else 0 for p,l in zip(predicted, labels)])
 
                 running_loss += loss.item()
         
-        eval_loss = running_loss/len(labels)
-        accuracy = correct/len(labels)
+        eval_loss = running_loss/self.val_size
+
+        num_correct = sum([sum(n) for n in correct])
+
+        accuracy = float(num_correct)/float(self.val_size)
 
         return(eval_loss, accuracy)
 
