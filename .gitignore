@@ -112,5 +112,6 @@ archive.ipynb
 test.ipynb
 
 #bc4 specific files
-test_probe.sh
+python/collected_probe_data.sh
 Run_Probe.py
+python/Training_run.py
