@@ -143,17 +143,12 @@ class SGFReader:
             for move in game_dict['moves']:
                 
                 command = [['play'], move[0], move[1]]
-
-                print(command)
-                print()
-
                 pla = (Board.BLACK if command[1] == "B" or command[1] == "b" else Board.WHITE)
                 loc = self.parse_coord(SGFReader, command[2], gs.board)
                 gs.play(pla,loc)
 
-                print(gs.get_model_outputs(kata_model, extra_output_names=['rconv13.out'])["rconv13.out"])
+                gs.get_model_outputs(kata_model)
             
-            print(game_dict['result'])
 
     """
     ---description---

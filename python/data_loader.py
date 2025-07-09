@@ -6,7 +6,7 @@ import load_model
 import torch
 from gamestate import GameState
 from board import Board
-import csv
+import json
 import numpy as np
 from pathlib import Path
 import random
@@ -23,9 +23,9 @@ class Data_Loader():
         'file path', 'layer outputs']
     
 
-    non_adv_dir_path = 'python/Data/Game_Data/Non-Adv_Policies'
+    non_adv_dir_path = 'Data/Game_Data/Non-Adv_Policies'
 
-    adv_dir_path = 'python/Data/Game_Data/Adversarial_Policies'
+    adv_dir_path = 'Data/Game_Data/Adversarial_Policies'
 
     non_adv_matchups = [['base-adv', 'may23-vic'],['base-adv', 'dec23'],['base-adv', 'may24'],['base-adv','v9'],
                         ['base-adv', 'ViT-Vic'],['large','may24'],['cont','may24']]
@@ -129,7 +129,7 @@ class Data_Loader():
                         file_path = sub_folder_path + '/' + os.fsdecode(file)
                         game_list = SGFReader.read_file(SGFReader, file_path)
                         for game in game_list:
-                            game_info = ['NA','NA',game['pla'], game['opp'], '0', 
+                            game_info = ['NA','NA',game['pla'], game['opp'], 0.0, 
                                          'NA', game['moves'], game['result'],file_path]
                             non_adv_data.append(game_info)
 
@@ -172,16 +172,16 @@ class Data_Loader():
                                     white_name = name
 
                             #Determines if a game is between adversarial policy and target model
-                            adversarial = '1'
+                            adversarial = 1.0
 
                             if ([black_name, white_name] in self.non_adv_matchups) or ([white_name, black_name] in self.non_adv_matchups):
-                                adversarial = '0'
+                                adversarial = 0.0
                             #Handles special case of cont v dec23, where adversarial is determined by no. visits
                             elif (black_name in ['cont','dec23']) and (white_name in ['cont','dec23']):
                                 if (black_model in ['b18-s8527m-v4096', 'b18-s8527m-v8192']):
-                                    adversarial = '0'
+                                    adversarial = 0.0
                                 elif(white_model in ['b18-s8527m-v4096', 'b18-s8527m-v8192']):
-                                    adversarial = '0'
+                                    adversarial = 0.0
                             
                             #Determines the adversarial attack type
                             if (black_name  == 'gift') or (white_name == 'gift'):
@@ -251,7 +251,7 @@ class Data_Loader():
                 
 
         for output in extra_outputs:
-            directory_name = 'python/Data/Probe_Data/' + model_name + '/' + (output.split('.')[0])
+            directory_name = 'python/Data/Probe_Data/' + model_name + '/' + (output.split('.')[0.0])
             file_name = 'game_' + str(i) + '.npy'
             out_file = directory_name + '/' + file_name
             output_array = np.array(probe_outputs[output])
@@ -294,29 +294,32 @@ class Data_Loader():
                 directory_path.mkdir(parents=True, exist_ok=True)
                 print(f"Directory '{directory_name}' created successfully.")
             except FileExistsError:
-                print(print(f"Directory '{directory_name}' already exists. Writing outputs to '{directory_name}"))
-
+                print(print(f"Directory '{directory_name}' already exists. Writing outputs to '{directory_name}"))        
         
-        meta_file = Path(save_directory + '/' + model_name + '/meta_data.npy')
+        kata_model, kata_swa_model, other_state_dict = load_model.load_model(chkpt_file, use_swa=True, device = torch.device("cpu"))
+
+        meta_file = Path(save_directory + '/' + model_name + '/meta_data.json')
 
 
         if not meta_file.is_file():
             
-            meta_data = []
+            meta_data = {}
+
+            model_data = kata_model.config
+
+            game_data = []
 
             for batch in batched_data:
                 for game in batch:
                     game_meta_data = game[0:5]
-                    meta_data.append(game_meta_data)
+                    game_data.append(game_meta_data)
 
-            np.array(meta_data)
+            meta_data['model data'] = model_data
+            meta_data['game data'] = game_data
 
-            with open(meta_file, 'wb') as f:
-                np.save(f, meta_data, allow_pickle = True)
-
-
-        kata_model, kata_swa_model, other_state_dict = load_model.load_model(chkpt_file, use_swa=True, device = torch.device("cpu"))
-        
+            with open(meta_file, 'w') as f:
+                json.dump(meta_data, f)
+                
         batch = batched_data[batch_index]
 
         for i in range(0, len(batch)):
