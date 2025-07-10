@@ -3,7 +3,7 @@ Classifier model is adapted from KataGos' v.16 model_pytorch.py, so layer ativat
 models are compatible with the classifier. 
 
 Most of the changes from model_pytorch.py are to simplifiy the class, or to remove sections that handle old
-versions of KataGo. However, some are so the model can be trained independently of the KataGo framework. 
+versions of KataGo.
 '''
 
 import torch
