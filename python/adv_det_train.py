@@ -4,7 +4,6 @@ import numpy as np
 import json
 import os
 from torch.utils.data import DataLoader
-from torch.utils.tensorboard import SummaryWriter
 from adv_det_dataset import Adversarial_Detection_Dataset as adv_dataset
 from adv_det_model import Model
 
@@ -40,7 +39,7 @@ class Training_Loop():
         self. optimizer = torch.optim.Adam(self.model.parameters(), lr = learing_rate)
 
 
-    def train_epoch(self, epoch_index : int, tb_writer:SummaryWriter):
+    def train_epoch(self, epoch_index : int):
 
         running_loss = 0.
         average_batch_loss = 0.
@@ -70,8 +69,6 @@ class Training_Loop():
             average_batch_loss = running_loss / self.batch_size
 
             print('  batch {} loss: {}'.format(i + 1, average_batch_loss))
-            tb_x = epoch_index * len(self.train_loader) + i + 1
-            tb_writer.add_scalar('Loss/train', average_batch_loss, tb_x)
             training_loss.append(average_batch_loss)
             running_loss = 0.
         

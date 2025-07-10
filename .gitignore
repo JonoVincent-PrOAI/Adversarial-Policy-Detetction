@@ -94,7 +94,7 @@ cpp/include/KataGoSwift/KataGoSwift-swift.h
 # For Large Files
 python/Network_Files
 python/Data
-python/wandb
+wandb
 
 #Venv
 adv-pol-det
@@ -116,4 +116,5 @@ test.ipynb
 #bc4 specific files
 python/collected_probe_data.sh
 Run_Probe.py
-python/Training_run.py
+python/Training_Run.py
+python/adv_det_training.sh
