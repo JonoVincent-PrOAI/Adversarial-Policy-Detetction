@@ -6,12 +6,15 @@ import os
 from torch.utils.data import DataLoader
 from adv_det_dataset import Adversarial_Detection_Dataset as adv_dataset
 from adv_det_model import Model
+import wandb
 
 class Training_Loop():
 
     def __init__(self, data_dir_path : str, batch_size : int, num_workers : int, learing_rate):
 
-        self.batch_size = batch_size
+        self.batch_sz = batch_size
+
+        self.lr = learing_rate
 
         self.dataset = adv_dataset(data_dir_path)
 
@@ -30,13 +33,47 @@ class Training_Loop():
 
         self.model = Model(kata_model_config = kata_model_config, pos_len=19)
 
-        self.train_loader = DataLoader(self.train_dataset, batch_size = self.batch_size, shuffle=True, num_workers = num_workers)
+        self.train_loader = DataLoader(self.train_dataset, batch_size = self.batch_sz, shuffle=True, num_workers = num_workers)
 
-        self.val_loader = DataLoader(self.val_dataset, batch_size = self.batch_size, shuffle=True, num_workers = num_workers)
+        self.val_loader = DataLoader(self.val_dataset, batch_size = self.batch_sz, shuffle=True, num_workers = num_workers)
 
         self.loss_fn = torch.nn.CrossEntropyLoss()
 
         self. optimizer = torch.optim.Adam(self.model.parameters(), lr = learing_rate)
+
+
+    def train(self, num_epochs : int):
+
+        for i in range(num_epochs):
+
+            self.train_epoch(i)
+            torch.save(self.model, 'python/Adv Pol Det Models')
+
+
+
+    def train_and_log(self, num_epochs : int, run_name : str, wandb_key : str):
+
+        wandb.login(key = wandb_key)
+
+        run = wandb.init(
+            project = "Adversarial_Detection_Test",
+            config={
+                "learning rate" : self.lr,
+                "epochs" : num_epochs,
+                "batch size" : self.batch_sz,
+            },
+        )
+
+        for i in range(num_epochs):
+
+            last_loss, training_loss, eval_loss, eval_accuracy = self.train_epoch(i)
+            wandb.log({'training loss': last_loss, 'eval accuracy' : eval_accuracy, 'eval loss' : eval_loss})
+
+            save_path = 'Adv_Pol_Det_Models/' + '/model_' + str(i) + '.chkpt'
+            torch.save(self.model, save_path)
+        
+        wandb.finish()
+
 
 
     def train_epoch(self, epoch_index : int):
@@ -66,15 +103,15 @@ class Training_Loop():
 
             running_loss += loss.item()
 
-            average_batch_loss = running_loss / self.batch_size
+            average_batch_loss = running_loss / self.batch_sz
 
-            print('  batch {} loss: {}'.format(i + 1, average_batch_loss))
+            #print('  batch {} loss: {}'.format(i + 1, average_batch_loss))
             training_loss.append(average_batch_loss)
             running_loss = 0.
         
         last_batch_loss = average_batch_loss
         eval_loss, eval_accuracy = self.eval_loop()
-        print("post" + str(eval_accuracy))
+        print("Acc: " + str(eval_accuracy))
 
         return (last_batch_loss,training_loss,eval_loss, eval_accuracy)
     
