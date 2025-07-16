@@ -91,10 +91,11 @@ cpp/build.ninja
 cpp/KataGoSwift.*
 cpp/include/KataGoSwift/KataGoSwift-swift.h
 
-# For Large Files
+# Data and Model Files
 python/Network_Files
 python/Data
 wandb
+Adv_Pol_Det_Models
 
 #Venv
 adv-pol-det

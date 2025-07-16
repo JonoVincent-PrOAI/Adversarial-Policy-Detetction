@@ -7,31 +7,42 @@ from torch.utils.data import DataLoader
 from adv_det_dataset import Adversarial_Detection_Dataset as adv_dataset
 from adv_det_model import Model
 import wandb
+import random
 
 class Training_Loop():
 
-    def __init__(self, data_dir_path : str, batch_size : int, num_workers : int, learing_rate):
+    def __init__(self, data_dir_path : str, batch_size : int, num_workers : int, learing_rate, model = None):
+
+        self.data_dir_path = data_dir_path
 
         self.batch_sz = batch_size
 
         self.lr = learing_rate
 
-        self.dataset = adv_dataset(data_dir_path)
+        #self.dataset = adv_dataset(data_dir_path)
 
-        train_size = int(0.8 * len(self.dataset))
-        self.val_size = len(self.dataset) - train_size
+        data_dir = os.fsencode(data_dir_path)
+        file_list = os.listdir(data_dir)
+        random.seed(42)
+        random.shuffle(file_list)
+        
+        train_size = int(0.8 * len(file_list))
 
-        self.train_dataset, self.val_dataset = torch.utils.data.random_split(self.dataset, [train_size, self.val_size])
+        self.train_dataset = adv_dataset(data_dir_path, file_list[0 : train_size])
+        self.val_dataset = adv_dataset(data_dir_path, file_list[train_size+1 : -1])
 
-        meta_dir = os.path.dirname(data_dir_path)
 
+        meta_dir = os.path.dirname(self.data_dir_path)
         meta_data_path =  meta_dir +'/'+'meta_data.json'
         with open(meta_data_path, 'r') as f:
-            meta_data = json.load(f)
+            self.meta_data = json.load(f)
             f.close()
-            kata_model_config = meta_data['model data']
-
-        self.model = Model(kata_model_config = kata_model_config, pos_len=19)
+        
+        if model == None:
+            kata_model_config = self.meta_data['model data']
+            self.model = Model(kata_model_config, 19)
+        else:
+            self.model = model
 
         self.train_loader = DataLoader(self.train_dataset, batch_size = self.batch_sz, shuffle=True, num_workers = num_workers)
 
@@ -47,7 +58,6 @@ class Training_Loop():
         for i in range(num_epochs):
 
             self.train_epoch(i)
-            torch.save(self.model, 'python/Adv Pol Det Models')
 
 
 
@@ -84,10 +94,9 @@ class Training_Loop():
         training_loss = []
         for i, data in enumerate(self.train_loader):
 
-            inputs, labels = data
+            indexes, inputs, labels = data
 
             labels = torch.tensor(labels)
-
             labels = labels.long()
 
             self.optimizer.zero_grad()
@@ -96,13 +105,9 @@ class Training_Loop():
             outputs = outputs.float()
             
             loss = self.loss_fn(outputs, labels)
-
             loss.backward()
-
             self.optimizer.step()
-
             running_loss += loss.item()
-
             average_batch_loss = running_loss / self.batch_sz
 
             #print('  batch {} loss: {}'.format(i + 1, average_batch_loss))
@@ -110,33 +115,29 @@ class Training_Loop():
             running_loss = 0.
         
         last_batch_loss = average_batch_loss
-        eval_loss, eval_accuracy = self.eval_loop()
+        eval_loss, eval_accuracy = self.eval_epoch()
         print("Acc: " + str(eval_accuracy))
 
         return (last_batch_loss,training_loss,eval_loss, eval_accuracy)
     
-    def eval_loop(self):
+    def eval_epoch(self):
 
         self.model.eval()
 
         correct = []
-
-        last_loss = 0
-
         running_loss = 0
-
         loss_fn = torch.nn.CrossEntropyLoss()
+        val_size = 0
 
         with torch.no_grad():
 
             for i, data in enumerate(self.val_loader):
 
-                inputs, labels = data
+                indexes, inputs, labels = data
 
-                outputs = self.model(inputs)
+                val_size += len(labels)
 
                 labels = torch.tensor(labels)
-
                 labels = labels.long()
 
                 self.optimizer.zero_grad()
@@ -152,13 +153,47 @@ class Training_Loop():
 
                 running_loss += loss.item()
         
-        eval_loss = running_loss/self.val_size
+        eval_loss = running_loss/val_size
 
         num_correct = sum([sum(n) for n in correct])
 
-        accuracy = float(num_correct)/float(self.val_size)
+        accuracy = float(num_correct)/float(val_size)
 
         return(eval_loss, accuracy)
+    
+
+    def evaluate_model(self):
+            
+            num_correct = 0
+
+            correct_per_move_num = {}
+
+            for i, (indexes, inputs, labels) in enumerate(self.val_loader):
+
+                for j, (idx, input, label) in enumerate(zip(indexes, inputs,labels)):
+
+                    label = label.long()
+
+                    self.optimizer.zero_grad
+
+                    output = self.model(input)[0]
+                    output = output.float()
+
+                    if output[0] > output[1]:
+                        predicted = 0.0
+                    else: 
+                        predicted = 1.0
+
+                    correct = int(predicted == label)
+
+                    move_num = self.val_dataset.get_sample(idx)['move num']
+
+                    if (move_num) in correct_per_move_num.keys():
+                        correct_per_move_num[(move_num)].append(correct)
+                    else:
+                        correct_per_move_num[(move_num)] = [correct]
+
+            return(correct_per_move_num)
 
 
 
