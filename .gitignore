@@ -112,7 +112,8 @@ lib
 #files for messing about
 python/archive.ipynb
 python/test.ipynb
-
+python/KataGo_Configs
+python/match_config
 
 #Venv
 adv-pol-det

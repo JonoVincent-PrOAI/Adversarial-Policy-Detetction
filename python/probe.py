@@ -14,7 +14,8 @@ import random
 
 
 class Probe():
-
+    #Random SEEDED HERE
+    random.seed(42)
 
     game_header = ['black name','white name','black model', 'white model', 'adversarial', 'attack type', 'moves', 'result', 
         'file path']
@@ -215,7 +216,7 @@ class Probe():
 
         data = non_adv_data + adv_data
 
-        random.shuffle(data)
+        random.shuffle(data) #Seed set at top of file
 
         batches = []
 
