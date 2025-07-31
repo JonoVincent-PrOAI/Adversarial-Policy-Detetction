@@ -8,6 +8,8 @@ __pycache__
 
 tmp*.txt
 
+katago
+
 cpp/write
 cpp/runtests
 cpp/example
@@ -96,6 +98,12 @@ python/Network_Files
 python/Data
 wandb
 Adv_Pol_Det_Models
+python/KataGo_Configs
+python/katago_network_files
+python/match_configs
+
+#logs and gmae data
+job_logs/
 
 #Venv
 adv-pol-det
