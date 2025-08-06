@@ -2,6 +2,7 @@ import torch
 from torch.utils.data import Dataset
 import os
 import numpy as np
+import json
 
 class Adversarial_Detection_Dataset(Dataset):
     '''
@@ -20,7 +21,6 @@ class Adversarial_Detection_Dataset(Dataset):
             self.file_list = os.listdir(data_dir)
         else:
             self.file_list = file_list
-        
         
         self.game_length_index = []
         for game_file in self.file_list:
@@ -104,4 +104,18 @@ class Adversarial_Detection_Dataset(Dataset):
             
         else:
             return(game_index)
-            
+        
+    def get_meta_data_from_idx(self, idx : int):
+
+        sample = self.get_sample(idx)
+        game_name = sample['game name']
+        game_num = int(game_name.split('_')[1].replace('.npy', ''))
+
+        meta_data_path = os.path.dirname(self.dir_path) + '/meta_data.json'
+        meta_path = os.fsencode(meta_data_path)
+
+        with open(meta_path) as meta_data:
+            meta_file = json.load(meta_data)
+            game_meta_data = meta_file['game data'][game_num]
+
+            return(game_meta_data)
