@@ -24,9 +24,9 @@ class Probe():
         'file path', 'layer outputs']
     
 
-    non_adv_dir_path = 'Data/Game_Data/Non-Adv_Policies'
+    non_adv_dir_path = 'python/Data/Game_Data/Non-Adv_Policies'
 
-    adv_dir_path = 'Data/Game_Data/Adversarial_Policies'
+    adv_dir_path = 'python/Data/Game_Data/Adversarial_Policies'
 
     non_adv_matchups = [['base-adv', 'may23-vic'],['base-adv', 'dec23'],['base-adv', 'may24'],['base-adv','v9'],
                         ['base-adv', 'ViT-Vic'],['large','may24'],['cont','may24']]

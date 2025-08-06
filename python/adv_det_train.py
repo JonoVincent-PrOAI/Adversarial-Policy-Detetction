@@ -75,10 +75,13 @@ class Training_Loop():
 
         for i in range(num_epochs):
 
+            print('epoch: ' + str(num_epochs))
+
             last_loss, training_loss, eval_loss, eval_accuracy = self.train_epoch(i)
             wandb.log({'training loss': last_loss, 'eval accuracy' : eval_accuracy, 'eval loss' : eval_loss})
+            print(eval_accuracy)
 
-            save_path = 'Adv_Pol_Det_Models/' + '/model_' + str(i) + '.chkpt'
+            save_path = 'python/Adv_Pol_Det_Models/' + '/model_' + str(i) + '.chkpt'
             torch.save(self.model, save_path)
         
         wandb.finish()
