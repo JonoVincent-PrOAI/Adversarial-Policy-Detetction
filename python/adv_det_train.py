@@ -31,7 +31,6 @@ class Training_Loop():
         self.train_dataset = adv_dataset(data_dir_path, file_list[0 : train_size])
         self.val_dataset = adv_dataset(data_dir_path, file_list[train_size+1 : -1])
 
-
         meta_dir = os.path.dirname(self.data_dir_path)
         meta_data_path =  meta_dir +'/'+'meta_data.json'
         with open(meta_data_path, 'r') as f:
@@ -44,9 +43,9 @@ class Training_Loop():
         else:
             self.model = model
 
-        self.train_loader = DataLoader(self.train_dataset, batch_size = self.batch_sz, shuffle=True, num_workers = num_workers)
+        self.train_loader = DataLoader(self.train_dataset, batch_size = self.batch_sz, shuffle=False, num_workers = num_workers)
 
-        self.val_loader = DataLoader(self.val_dataset, batch_size = self.batch_sz, shuffle=True, num_workers = num_workers)
+        self.val_loader = DataLoader(self.val_dataset, batch_size = self.batch_sz, shuffle=False, num_workers = num_workers)
 
         self.loss_fn = torch.nn.CrossEntropyLoss()
 
@@ -164,36 +163,74 @@ class Training_Loop():
 
     def evaluate_model(self):
             
+            self.model.eval()
+            
             num_correct = 0
 
             correct_per_move_num = {}
+            correct_per_move_adv = {}
+            correct_per_move_non_adv = {}
+            correct_per_adv_model = {}
 
-            for i, (indexes, inputs, labels) in enumerate(self.val_loader):
+            adv_model_names = ['atari', 'base-adv', 'cont', 'gift', 'large', 'stall', 'ViT-adv']
+            for model in adv_model_names:
+                correct_per_adv_model[model] = []
 
-                for j, (idx, input, label) in enumerate(zip(indexes, inputs,labels)):
+            with torch.no_grad():
 
-                    label = label.long()
+                for i, (indexes, inputs, labels) in enumerate(self.val_loader):
 
-                    self.optimizer.zero_grad
+                    for j, (idx, input, label) in enumerate(zip(indexes, inputs, labels)):
 
-                    output = self.model(input)[0]
-                    output = output.float()
+                        label = label.long()
 
-                    if output[0] > output[1]:
-                        predicted = 0.0
-                    else: 
-                        predicted = 1.0
+                        self.optimizer.zero_grad
 
-                    correct = int(predicted == label)
+                        output = self.model(input)[0]
+                        output = output.float()
 
-                    move_num = self.val_dataset.get_sample(idx)['move num']
+                        if output[0] > output[1]:
+                            predicted = 0.0
+                        else: 
+                            predicted = 1.0
 
-                    if (move_num) in correct_per_move_num.keys():
-                        correct_per_move_num[(move_num)].append(correct)
-                    else:
-                        correct_per_move_num[(move_num)] = [correct]
+                        correct = int(predicted == label)
 
-            return(correct_per_move_num)
+                        move_num = self.val_dataset.get_sample(idx)['move num']
+
+                        if (move_num) in correct_per_move_num.keys():
+                            correct_per_move_num[(move_num)].append(correct)
+                        else:
+                            correct_per_move_num[(move_num)] = [correct]
+
+                        if label == 0.0:
+                            if (move_num) in correct_per_move_non_adv.keys():
+                                correct_per_move_non_adv[(move_num)].append(correct)
+                            else:
+                                correct_per_move_non_adv[(move_num)] = [correct]
+                        else:
+                            if (move_num) in correct_per_move_adv.keys():
+                                correct_per_move_adv[(move_num)].append(correct)
+                            else:
+                                correct_per_move_adv[(move_num)] = [correct]
+                                
+                            
+                            meta_data = self.val_dataset.get_meta_data_from_idx(idx)
+
+                            model1 = meta_data[0]
+                            model2 = meta_data[1]
+                            adv = meta_data[-1]
+                            if model1 in adv_model_names:
+                                correct_per_adv_model[model1].append(correct)
+                            elif model2 in adv_model_names:
+                                correct_per_adv_model[model2].append(correct)
+                            else:
+                                if model1 != 'NA':
+                                    print('error uknow model :' + model1)
+                                if model2 != 'NA':
+                                    print('error uknow model :' + model1)                
+
+            return(correct_per_move_num, correct_per_move_adv, correct_per_move_non_adv, correct_per_adv_model)
 
 
 
