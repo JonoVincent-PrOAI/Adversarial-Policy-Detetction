@@ -303,7 +303,7 @@ class Probe():
 
             game_data = batch[i]
 
-            index = (len(batch) * batch_index) + i
+            index = (len(batched_data[0]) * batch_index) + i
 
             gs = GameState(19, GameState.RULES_TT)
 
